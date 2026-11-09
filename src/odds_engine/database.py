@@ -1,3 +1,4 @@
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 
@@ -24,7 +25,7 @@ def _connect(db_path):
 
 
 def init_db(db_path):
-    with _connect(db_path) as connection:
+    with closing(_connect(db_path)) as connection, connection:
         connection.execute("""
             CREATE TABLE IF NOT EXISTS import_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
