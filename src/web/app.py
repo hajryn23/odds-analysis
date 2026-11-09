@@ -6,7 +6,7 @@ from flask import Flask, render_template
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from odds_engine.database import init_db, load_analysis
+from odds_engine.database import init_db, load_analysis, load_import_history
 
 app = Flask(__name__)
 DB_PATH = ROOT / "data" / "odds_analysis.sqlite3"
@@ -15,20 +15,30 @@ COLUMN_LABELS = {
     "date": "Tanggal",
     "home_team": "Tim Tuan Rumah",
     "away_team": "Tim Tandang",
-    "home_odds": "Odds Tuan Rumah",
-    "draw_odds": "Odds Seri",
-    "away_odds": "Odds Tandang",
-    "home_odds_prob": "Prob. Implisit Tuan Rumah",
-    "draw_odds_prob": "Prob. Implisit Seri",
-    "away_odds_prob": "Prob. Implisit Tandang",
+    "home_odds": "Odds Home",
+    "draw_odds": "Odds Draw",
+    "away_odds": "Odds Away",
+    "home_odds_prob": "Prob. Implisit Home",
+    "draw_odds_prob": "Prob. Implisit Draw",
+    "away_odds_prob": "Prob. Implisit Away",
     "bookmaker_margin": "Margin Bandar",
-    "home_fair_prob": "Prob. Wajar Tuan Rumah",
-    "draw_fair_prob": "Prob. Wajar Seri",
-    "away_fair_prob": "Prob. Wajar Tandang",
-    "home_fair_odds": "Odds Wajar Tuan Rumah",
-    "draw_fair_odds": "Odds Wajar Seri",
-    "away_fair_odds": "Odds Wajar Tandang",
-    "source_file": "Sumber CSV",
+    "home_fair_prob": "Prob. Wajar Home",
+    "draw_fair_prob": "Prob. Wajar Draw",
+    "away_fair_prob": "Prob. Wajar Away",
+    "home_fair_odds": "Fair Odds Home",
+    "draw_fair_odds": "Fair Odds Draw",
+    "away_fair_odds": "Fair Odds Away",
+    "source_file": "Sumber Data",
+}
+
+PERCENT_COLUMNS = {
+    "home_odds_prob", "draw_odds_prob", "away_odds_prob",
+    "bookmaker_margin",
+    "home_fair_prob", "draw_fair_prob", "away_fair_prob",
+}
+ODDS_COLUMNS = {
+    "home_odds", "draw_odds", "away_odds",
+    "home_fair_odds", "draw_fair_odds", "away_fair_odds",
 }
 
 # Schema initialization only. This never scans or imports CSV files.
@@ -39,9 +49,10 @@ init_db(DB_PATH)
 def index():
     df = load_analysis(DB_PATH)
     results = df.astype(object).where(df.notna(), None).to_dict(orient="records")
-    columns = [col for col in df.columns if col != "source_file"]
-    stats = None
+    columns = list(df.columns)
+    import_history = load_import_history(DB_PATH)
 
+    stats = None
     if not df.empty:
         stats = {
             "total_matches": len(df),
@@ -59,7 +70,10 @@ def index():
         results=results,
         columns=columns,
         stats=stats,
+        import_history=import_history,
         column_labels=COLUMN_LABELS,
+        percent_columns=PERCENT_COLUMNS,
+        odds_columns=ODDS_COLUMNS,
     )
 
 
