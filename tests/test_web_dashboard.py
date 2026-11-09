@@ -49,3 +49,37 @@ def test_dashboard_formats_probabilities_and_shows_import_history(tmp_path, monk
     assert "25.00%" in html
     assert "history-test.csv" in html
     assert "2.000" in html
+
+
+def test_dashboard_displays_bookmaker_and_odds_provenance(tmp_path, monkeypatch):
+    db_path = tmp_path / "metadata-dashboard.sqlite3"
+    source = pd.DataFrame([{
+        "date": pd.Timestamp("2026-02-01"),
+        "home_team": "Metadata Home",
+        "away_team": "Metadata Away",
+        "home_odds": 2.0,
+        "draw_odds": 4.0,
+        "away_odds": 4.0,
+        "bookmaker": "Pinnacle",
+        "odds_period": "closing",
+        "source_provider": "football-data",
+    }])
+    report = {
+        "original_rows": 1,
+        "rejected_rows": 0,
+        "duplicate_rows": 0,
+        "valid_rows": 1,
+    }
+    save_analysis(analyze_1x2(source), report, "football-data.csv", db_path)
+    monkeypatch.setattr(web_module, "DB_PATH", db_path)
+
+    response = web_module.app.test_client().get("/")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Pinnacle" in html
+    assert "closing" in html
+    assert "football-data" in html
+    assert "Bookmaker" in html
+    assert "Periode Odds" in html
+    assert "Penyedia Data" in html
