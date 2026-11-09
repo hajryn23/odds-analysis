@@ -52,7 +52,6 @@ def init_db(db_path):
             + ", FOREIGN KEY(import_id) REFERENCES import_history(id))"
         )
 
-        # Migrate older SQLite databases without deleting existing records.
         existing = {
             row["name"]
             for row in connection.execute("PRAGMA table_info(analysis_results)")
@@ -137,3 +136,20 @@ def load_analysis(db_path):
             + " FROM analysis_results ORDER BY date DESC, id DESC"
         ).fetchall()
     return pd.DataFrame([dict(row) for row in rows], columns=columns)
+
+
+def load_import_history(db_path, limit=10):
+    """Return recent explicit imports for dashboard traceability."""
+    init_db(db_path)
+    with _connect(db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT id, source_file, imported_at, original_rows, rejected_rows,
+                   duplicate_rows, valid_rows, saved_rows
+            FROM import_history
+            ORDER BY imported_at DESC, id DESC
+            LIMIT ?
+            """,
+            (max(1, int(limit)),),
+        ).fetchall()
+    return [dict(row) for row in rows]
