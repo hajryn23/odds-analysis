@@ -69,3 +69,22 @@ pytest -q
 ```
 
 Tests include the existing odds-engine checks and additional validation for non-finite odds and preservation of repeated fixture rows. The existing test fixture is used only by tests; it is not automatically imported into the application database.
+
+
+## SGOdds historical export
+
+The importer also recognizes the SGOdds export layout (including `Match`,
+`Start Time`, and `Ft1X2_01` through `Ft1X2_03`). It maps those three
+full-time 1X2 prices into the existing probability analysis.
+
+For this format, the complete original source row is additionally retained as
+JSON in the SQLite `source_data_records` table, including all source columns
+such as Asian Handicap, totals, correct score, half-time markets, league,
+result, and the source match ID. The source match ID is not unique and is
+stored as ordinary metadata; each imported source row has its own database
+record. Missing market prices remain JSON null values and do not cause an
+otherwise valid 1X2 fixture to be rejected.
+
+This preserves the original market data for future analysis without pretending
+that every market has already been normalized into an analytical model. The
+existing dashboard continues to show the derived 1X2 analysis.
