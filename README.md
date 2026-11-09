@@ -88,3 +88,18 @@ otherwise valid 1X2 fixture to be rejected.
 This preserves the original market data for future analysis without pretending
 that every market has already been normalized into an analytical model. The
 existing dashboard continues to show the derived 1X2 analysis.
+
+
+## Read-only database audit
+
+Run a consistency audit without modifying the database:
+
+```bash
+python -m src.odds_engine.audit_database
+```
+
+The audit checks SQLite integrity, required 1X2 odds, fair-probability totals,
+bookmaker-margin calculations, import-history row counts, orphaned records,
+and the JSON source archive. It reports the stored date range and number of
+source columns found. The audit opens the database in SQLite read-only mode;
+it does not import, update, or delete records.
