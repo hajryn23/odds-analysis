@@ -29,6 +29,9 @@ COLUMN_LABELS = {
     "draw_fair_odds": "Fair Odds Draw",
     "away_fair_odds": "Fair Odds Away",
     "source_file": "Sumber Data",
+    "bookmaker": "Bookmaker",
+    "odds_period": "Periode Odds",
+    "source_provider": "Penyedia Data",
 }
 
 PERCENT_COLUMNS = {
