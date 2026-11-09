@@ -14,6 +14,11 @@ RESULT_COLUMNS = [
     "home_fair_odds", "draw_fair_odds", "away_fair_odds",
 ]
 METADATA_COLUMNS = ["bookmaker", "odds_period", "source_provider"]
+METADATA_DEFAULTS = {
+    "bookmaker": "Unknown",
+    "odds_period": "unspecified",
+    "source_provider": "manual_csv",
+}
 TEXT_COLUMNS = {"date", "home_team", "away_team", *METADATA_COLUMNS}
 NUMERIC_COLUMNS = [col for col in RESULT_COLUMNS if col not in {"date", "home_team", "away_team"}]
 ALL_RESULT_COLUMNS = RESULT_COLUMNS + METADATA_COLUMNS
@@ -151,10 +156,15 @@ def save_analysis(df, report, source_file, db_path, raw_source_df=None):
     ]
     rows = []
     for record in df.to_dict(orient="records"):
-        rows.append(tuple(
-            _normalize_value(col, record.get(col))
-            for col in available_columns
-        ))
+        values = []
+        for col in available_columns:
+            value = record.get(col)
+            if col in METADATA_DEFAULTS and (
+                value is None or pd.isna(value) or str(value).strip() == ""
+            ):
+                value = METADATA_DEFAULTS[col]
+            values.append(_normalize_value(col, value))
+        rows.append(tuple(values))
 
     source_name = Path(source_file).name
     with closing(_connect(db_path)) as connection, connection:

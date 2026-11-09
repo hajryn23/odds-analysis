@@ -141,3 +141,51 @@ def test_save_analysis_supports_legacy_required_imported_rows_column(tmp_path):
 
     assert history == ("legacy_history.csv", 1, 1, 1, 1)
     assert analysis_count == 1
+
+
+def test_save_analysis_supplies_legacy_metadata_defaults(tmp_path):
+    db_path = tmp_path / "legacy_metadata.sqlite3"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("""
+            CREATE TABLE analysis_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                home_team TEXT NOT NULL,
+                away_team TEXT NOT NULL,
+                home_odds REAL NOT NULL,
+                draw_odds REAL NOT NULL,
+                away_odds REAL NOT NULL,
+                home_odds_prob REAL NOT NULL,
+                draw_odds_prob REAL NOT NULL,
+                away_odds_prob REAL NOT NULL,
+                bookmaker_margin REAL NOT NULL,
+                home_fair_prob REAL NOT NULL,
+                draw_fair_prob REAL NOT NULL,
+                away_fair_prob REAL NOT NULL,
+                home_fair_odds REAL NOT NULL,
+                draw_fair_odds REAL NOT NULL,
+                away_fair_odds REAL NOT NULL,
+                analyzed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                source_file TEXT NOT NULL DEFAULT '',
+                import_id INTEGER,
+                bookmaker TEXT NOT NULL DEFAULT 'Unknown',
+                odds_period TEXT NOT NULL DEFAULT 'unspecified',
+                source_provider TEXT NOT NULL DEFAULT 'manual_csv'
+            )
+        """)
+
+    analyzed = analyze_1x2(_source_frame())
+    import_id = save_analysis(
+        analyzed, _report(), "legacy_metadata.csv", db_path
+    )
+
+    with sqlite3.connect(db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT bookmaker, odds_period, source_provider
+            FROM analysis_results WHERE import_id = ?
+            """,
+            (import_id,),
+        ).fetchone()
+
+    assert row == ("Unknown", "unspecified", "manual_csv")
