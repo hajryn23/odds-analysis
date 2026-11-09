@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from odds_engine.csv_reader import read_odds_csv
+from odds_engine.source_adapters import adapt_odds_source
 from odds_engine.data_cleaner import clean_odds_data
 from odds_engine.odds_analyzer import analyze_1x2
 from odds_engine.database import init_db, save_analysis
@@ -25,7 +26,8 @@ def import_file(file_path):
     print(f"File yang dipilih: {path}")
     print("Membaca seluruh isi CSV; tidak menggunakan sampel...")
     raw = read_odds_csv(path)
-    clean, report = clean_odds_data(raw)
+    mapped, raw_source = adapt_odds_source(raw)
+    clean, report = clean_odds_data(mapped)
 
     print("\n=== LAPORAN PEMBERSIHAN ===")
     print(f"Baris awal       : {report['original_rows']}")
@@ -36,8 +38,21 @@ def import_file(file_path):
     if clean.empty:
         raise ValueError("Tidak ada baris valid. Database tidak diubah.")
 
+    source_rows = None
+    if raw_source is not None:
+        source_indexes = clean["_source_row"].astype(int).tolist()
+        source_rows = raw_source.iloc[source_indexes].copy()
+
     analyzed = analyze_1x2(clean)
+    if "_source_row" in analyzed.columns:
+        analyzed = analyzed.drop(columns=["_source_row"])
+
     print(f"\nBaris siap disimpan: {len(analyzed)}")
+    if source_rows is not None:
+        print(
+            "Baris sumber lengkap yang akan disimpan: "
+            f"{len(source_rows)} (termasuk seluruh kolom asli CSV)"
+        )
     confirmation = input(
         "Ketik IMPOR untuk menyimpan hasil ke database SQLite: "
     ).strip()
@@ -46,7 +61,9 @@ def import_file(file_path):
         return None
 
     init_db(DB_PATH)
-    import_id = save_analysis(analyzed, report, path, DB_PATH)
+    import_id = save_analysis(
+        analyzed, report, path, DB_PATH, raw_source_df=source_rows
+    )
     print(f"Impor berhasil. ID impor: {import_id}")
     print(f"Database: {DB_PATH}")
     return import_id
