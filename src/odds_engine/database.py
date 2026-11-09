@@ -158,20 +158,35 @@ def save_analysis(df, report, source_file, db_path, raw_source_df=None):
 
     source_name = Path(source_file).name
     with closing(_connect(db_path)) as connection, connection:
+        # Older local databases may have an additional NOT NULL
+        # imported_rows column. Populate it when present so imports remain
+        # compatible without rebuilding or deleting the user's existing table.
+        history_columns = {
+            row["name"]: row
+            for row in connection.execute("PRAGMA table_info(import_history)")
+        }
+        history_values = {
+            "source_file": source_name,
+            "original_rows": int(report["original_rows"]),
+            "rejected_rows": int(report["rejected_rows"]),
+            "duplicate_rows": int(report["duplicate_rows"]),
+            "valid_rows": int(report["valid_rows"]),
+            "saved_rows": len(rows),
+        }
+        if "imported_rows" in history_columns:
+            history_values["imported_rows"] = len(rows)
+
+        history_names = list(history_values)
+        history_sql = (
+            "INSERT INTO import_history ("
+            + ", ".join(f'"{name}"' for name in history_names)
+            + ") VALUES ("
+            + ", ".join(["?"] * len(history_names))
+            + ")"
+        )
         cursor = connection.execute(
-            """
-            INSERT INTO import_history
-            (source_file, original_rows, rejected_rows, duplicate_rows, valid_rows, saved_rows)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                source_name,
-                int(report["original_rows"]),
-                int(report["rejected_rows"]),
-                int(report["duplicate_rows"]),
-                int(report["valid_rows"]),
-                len(rows),
-            ),
+            history_sql,
+            [history_values[name] for name in history_names],
         )
         import_id = cursor.lastrowid
         columns = available_columns + ["source_file", "import_id"]
