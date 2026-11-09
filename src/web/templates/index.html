@@ -40,7 +40,8 @@ tbody tr:last-child td{border-bottom:0}
 .history-item{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:12px;background:#172235;border:1px solid var(--line);border-radius:9px}
 .history-item strong{display:block;overflow-wrap:anywhere}
 .history-meta{color:var(--muted);font-size:12px}
-.analysis-table{width:100%;min-width:620px;border-collapse:collapse}.analysis-table th,.analysis-table td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13px;white-space:nowrap}.analysis-table th{position:static}.analysis-table td.numeric{text-align:right;font-variant-numeric:tabular-nums}.section-note{color:var(--muted);font-size:12px;margin:-5px 0 14px;line-height:1.6}\n.pill{display:inline-block;padding:4px 9px;border-radius:999px;background:#263449;color:#bfdbfe;font-size:12px;white-space:nowrap}
+.analysis-table{width:100%;min-width:620px;border-collapse:collapse}.analysis-table th,.analysis-table td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13px;white-space:nowrap}.analysis-table th{position:static}.analysis-table td.numeric{text-align:right;font-variant-numeric:tabular-nums}.section-note{color:var(--muted);font-size:12px;margin:-5px 0 14px;line-height:1.6}
+.pill{display:inline-block;padding:4px 9px;border-radius:999px;background:#263449;color:#bfdbfe;font-size:12px;white-space:nowrap}
 @media(max-width:600px){body{padding:16px}.panel{padding:15px}.history-item{align-items:flex-start;flex-direction:column}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
@@ -112,6 +113,43 @@ tbody tr:last-child td{border-bottom:0}
 </div>
 </section>
 {% endif %}
+
+
+<section class="panel">
+<h2>Profil Harga Odds Favorit</h2>
+<p class="section-note">Setiap pertandingan dikelompokkan berdasarkan odds terendah dari Home, Draw, atau Away. Probabilitas favorit adalah fair probability hasil yang memiliki odds terendah. Angka ini menggambarkan harga pasar, bukan tingkat kemenangan aktual.</p>
+{% if historical.favorite_bands %}
+<div class="table-wrap">
+<table class="analysis-table">
+<thead><tr><th>Rentang Odds Favorit</th><th>Jumlah</th><th>Porsi Data</th><th>Rata-rata Prob. Wajar Favorit</th><th>Rata-rata Margin</th><th>Home</th><th>Draw</th><th>Away</th></tr></thead>
+<tbody>
+{% for item in historical.favorite_bands %}
+<tr>
+<td>{{ item.band }}</td><td class="numeric">{{ item.count }}</td>
+<td class="numeric">{{ "%.1f"|format(item.share) }}%</td>
+<td class="numeric">{{ "%.2f"|format(item.avg_favorite_fair_prob) }}%</td>
+<td class="numeric">{{ "%.2f"|format(item.avg_margin) }}%</td>
+<td class="numeric">{{ item.home_count }}</td><td class="numeric">{{ item.draw_count }}</td><td class="numeric">{{ item.away_count }}</td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}<p class="muted">Belum ada baris valid untuk segmentasi odds favorit.</p>{% endif %}
+</section>
+
+<section class="panel">
+<h2>Distribusi Margin Bookmaker</h2>
+<p class="section-note">Margin dihitung dari total probabilitas implisit 1X2 dikurangi 100%. Pengelompokan berikut membantu melihat sebaran tingkat margin pada data tersimpan.</p>
+{% if historical.margin_bands %}
+<div class="table-wrap">
+<table class="analysis-table">
+<thead><tr><th>Rentang Margin</th><th>Jumlah Pertandingan</th><th>Porsi Data</th><th>Rata-rata Margin Aktual</th></tr></thead>
+<tbody>
+{% for item in historical.margin_bands %}
+<tr><td>{{ item.band }}</td><td class="numeric">{{ item.count }}</td><td class="numeric">{{ "%.1f"|format(item.share) }}%</td><td class="numeric">{{ "%.2f"|format(item.avg_margin) }}%</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}<p class="muted">Belum ada data margin valid.</p>{% endif %}
+</section>
 
 <section class="panel">
 <h2>Seluruh Hasil Analisis</h2>
