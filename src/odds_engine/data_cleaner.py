@@ -45,7 +45,7 @@ def clean_odds_data(df):
     duplicate_rows = int(
         df.duplicated(subset=["date", "home_team", "away_team"], keep="first").sum()
     )
-    df = df.sort_values("date").reset_index(drop=True)
+    df = df.sort_values("date", kind="stable").reset_index(drop=True)
 
     report = {
         "original_rows": original_rows,
