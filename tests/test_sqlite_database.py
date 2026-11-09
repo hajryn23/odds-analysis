@@ -101,3 +101,43 @@ def test_init_db_adds_missing_columns_without_losing_legacy_rows(tmp_path):
             row[1] for row in connection.execute("PRAGMA table_info(analysis_results)")
         }
     assert {"bookmaker", "odds_period", "source_provider"} <= columns
+
+
+def test_save_analysis_supports_legacy_required_imported_rows_column(tmp_path):
+    db_path = tmp_path / "legacy_import_history.sqlite3"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("""
+            CREATE TABLE import_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_file TEXT NOT NULL,
+                imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                original_rows INTEGER NOT NULL,
+                rejected_rows INTEGER NOT NULL,
+                duplicate_rows INTEGER NOT NULL,
+                imported_rows INTEGER NOT NULL,
+                valid_rows INTEGER NOT NULL DEFAULT 0,
+                saved_rows INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+
+    analyzed = analyze_1x2(_source_frame())
+    import_id = save_analysis(
+        analyzed, _report(), "legacy_history.csv", db_path
+    )
+
+    with sqlite3.connect(db_path) as connection:
+        history = connection.execute(
+            """
+            SELECT source_file, original_rows, imported_rows,
+                   valid_rows, saved_rows
+            FROM import_history WHERE id = ?
+            """,
+            (import_id,),
+        ).fetchone()
+        analysis_count = connection.execute(
+            "SELECT COUNT(*) FROM analysis_results WHERE import_id = ?",
+            (import_id,),
+        ).fetchone()[0]
+
+    assert history == ("legacy_history.csv", 1, 1, 1, 1)
+    assert analysis_count == 1
