@@ -1,4 +1,5 @@
 from contextlib import closing
+import json
 from pathlib import Path
 import sqlite3
 
@@ -45,6 +46,19 @@ def init_db(db_path):
                 saved_rows INTEGER NOT NULL
             )
         """)
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS source_data_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                import_id INTEGER NOT NULL,
+                row_number INTEGER NOT NULL,
+                source_match_id TEXT,
+                match_name TEXT,
+                league TEXT,
+                start_time TEXT,
+                raw_payload TEXT NOT NULL,
+                FOREIGN KEY(import_id) REFERENCES import_history(id)
+            )
+        """)
 
         definitions = [
             f'"{col}" {_column_type(col)}'
@@ -64,8 +78,6 @@ def init_db(db_path):
             row["name"]
             for row in connection.execute("PRAGMA table_info(analysis_results)")
         }
-        # Add every current result/metadata field missing from older schemas.
-        # Nullable ALTERs preserve all existing rows and remain idempotent.
         required_columns = {
             "source_file": "TEXT NOT NULL DEFAULT ''",
             "import_id": "INTEGER",
@@ -89,6 +101,14 @@ def init_db(db_path):
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_analysis_provider ON analysis_results(source_provider)"
         )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_source_records_import "
+            "ON source_data_records(import_id)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_source_records_match_id "
+            "ON source_data_records(source_match_id)"
+        )
 
 
 def _normalize_value(column, value):
@@ -101,14 +121,28 @@ def _normalize_value(column, value):
     return str(value).strip()
 
 
-def save_analysis(df, report, source_file, db_path):
-    """Persist all analyzed rows, including optional bookmaker/provider metadata."""
+def _json_safe(value):
+    if pd.isna(value):
+        return None
+    if hasattr(value, "item"):
+        value = value.item()
+    if isinstance(value, pd.Timestamp):
+        return value.isoformat()
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def save_analysis(df, report, source_file, db_path, raw_source_df=None):
+    """Persist analyzed rows and, when supplied, complete original source rows."""
     if df.empty:
         raise ValueError("Tidak ada baris valid untuk disimpan.")
 
     missing = [col for col in RESULT_COLUMNS if col not in df.columns]
     if missing:
         raise ValueError(f"Kolom hasil analisis tidak lengkap: {missing}")
+    if raw_source_df is not None and len(raw_source_df) != len(df):
+        raise ValueError("Jumlah baris sumber tidak cocok dengan hasil analisis.")
 
     init_db(db_path)
     available_columns = [
@@ -151,6 +185,32 @@ def save_analysis(df, report, source_file, db_path):
             sql,
             [row + (source_name, import_id) for row in rows],
         )
+
+        if raw_source_df is not None:
+            source_records = []
+            for source_index, record in raw_source_df.iterrows():
+                payload = {
+                    str(key): _json_safe(value)
+                    for key, value in record.to_dict().items()
+                }
+                source_records.append((
+                    import_id,
+                    int(source_index) + 2,
+                    str(record.get("id")) if pd.notna(record.get("id")) else None,
+                    str(record.get("match")) if pd.notna(record.get("match")) else None,
+                    str(record.get("league")) if pd.notna(record.get("league")) else None,
+                    str(record.get("start_time")) if pd.notna(record.get("start_time")) else None,
+                    json.dumps(payload, ensure_ascii=False, allow_nan=False),
+                ))
+            connection.executemany(
+                """
+                INSERT INTO source_data_records
+                (import_id, row_number, source_match_id, match_name, league,
+                 start_time, raw_payload)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                source_records,
+            )
     return import_id
 
 
