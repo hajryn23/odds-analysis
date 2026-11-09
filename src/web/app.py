@@ -1,19 +1,16 @@
 from pathlib import Path
 import sys
 
-from flask import Flask, render_template, request, send_file
-from werkzeug.utils import secure_filename
+from flask import Flask, render_template
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from odds_engine.pipeline import run_pipeline
+from odds_engine.database import init_db, load_analysis
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+DB_PATH = ROOT / "data" / "odds_analysis.sqlite3"
 
-UPLOAD_DIR = ROOT / "data" / "raw" / "uploads"
-OUTPUT_FILE = ROOT / "data" / "processed" / "web_analysis_results.csv"
 COLUMN_LABELS = {
     "date": "Tanggal",
     "home_team": "Tim Tuan Rumah",
@@ -31,93 +28,38 @@ COLUMN_LABELS = {
     "home_fair_odds": "Odds Wajar Tuan Rumah",
     "draw_fair_odds": "Odds Wajar Seri",
     "away_fair_odds": "Odds Wajar Tandang",
+    "source_file": "Sumber CSV",
 }
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+# Schema initialization only. This never scans or imports CSV files.
+init_db(DB_PATH)
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
-    results = None
-    columns = []
+    df = load_analysis(DB_PATH)
+    results = df.astype(object).where(df.notna(), None).to_dict(orient="records")
+    columns = [col for col in df.columns if col != "source_file"]
     stats = None
-    error = None
 
-    if request.method == "POST":
-        uploaded_file = request.files.get("file")
-
-        if not uploaded_file or not uploaded_file.filename:
-            error = "Pilih file CSV terlebih dahulu."
-
-        elif not uploaded_file.filename.lower().endswith(".csv"):
-            error = "Format file harus CSV."
-
-        else:
-            filename = secure_filename(uploaded_file.filename)
-
-            if not filename:
-                error = "Nama file tidak valid."
-            else:
-                input_file = UPLOAD_DIR / filename
-                uploaded_file.save(input_file)
-
-                try:
-                    df = run_pipeline(input_file, OUTPUT_FILE)
-
-                    columns = list(df.columns)
-                    results = (
-                        df.fillna("")
-                        .astype(object)
-                        .to_dict(orient="records")
-                    )
-
-                    stats = {
-                        "total_matches": len(df),
-                        "average_margin": (
-                            df["bookmaker_margin"].mean() * 100
-                        ),
-                        "home_probability": (
-                            df["home_fair_prob"].mean() * 100
-                        ),
-                        "draw_probability": (
-                            df["draw_fair_prob"].mean() * 100
-                        ),
-                        "away_probability": (
-                            df["away_fair_prob"].mean() * 100
-                        ),
-                        "home_fair_odds": (
-                            df["home_fair_odds"].mean()
-                        ),
-                        "draw_fair_odds": (
-                            df["draw_fair_odds"].mean()
-                        ),
-                        "away_fair_odds": (
-                            df["away_fair_odds"].mean()
-                        ),
-                    }
-
-                except Exception as exc:
-                    error = f"Analisis gagal: {exc}"
+    if not df.empty:
+        stats = {
+            "total_matches": len(df),
+            "average_margin": float(df["bookmaker_margin"].mean() * 100),
+            "home_probability": float(df["home_fair_prob"].mean() * 100),
+            "draw_probability": float(df["draw_fair_prob"].mean() * 100),
+            "away_probability": float(df["away_fair_prob"].mean() * 100),
+            "home_fair_odds": float(df["home_fair_odds"].mean()),
+            "draw_fair_odds": float(df["draw_fair_odds"].mean()),
+            "away_fair_odds": float(df["away_fair_odds"].mean()),
+        }
 
     return render_template(
         "index.html",
         results=results,
         columns=columns,
         stats=stats,
-        error=error,
         column_labels=COLUMN_LABELS,
-    )
-
-
-@app.route("/download")
-def download():
-    if not OUTPUT_FILE.exists():
-        return "Belum ada hasil analisis.", 404
-
-    return send_file(
-        OUTPUT_FILE,
-        as_attachment=True,
-        download_name="odds_analysis_results.csv",
     )
 
 
