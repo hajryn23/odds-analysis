@@ -123,7 +123,7 @@ def save_analysis(df, report, source_file, db_path):
         ))
 
     source_name = Path(source_file).name
-    with _connect(db_path) as connection, connection:
+    with closing(_connect(db_path)) as connection, connection:
         cursor = connection.execute(
             """
             INSERT INTO import_history
@@ -157,7 +157,7 @@ def save_analysis(df, report, source_file, db_path):
 def load_analysis(db_path):
     init_db(db_path)
     columns = ALL_RESULT_COLUMNS + ["source_file"]
-    with _connect(db_path) as connection:
+    with closing(_connect(db_path)) as connection:
         rows = connection.execute(
             "SELECT " + ", ".join(f'"{col}"' for col in columns)
             + " FROM analysis_results ORDER BY date DESC, id DESC"
