@@ -27,11 +27,12 @@ def _frame():
 def test_favorite_price_bands_and_favorite_side_counts():
     result = analyze_historical_odds(_frame())
     assert [row["band"] for row in result["favorite_bands"]] == [
-        "1.01–1.49", "2.00–2.49"
+        "1.01–1.49", "2.00–2.49", "2.50–3.49"
     ]
     assert result["favorite_bands"][0]["count"] == 1
     assert result["favorite_bands"][0]["home_count"] == 1
-    assert result["favorite_bands"][1]["away_count"] == 1
+    assert result["favorite_bands"][1]["home_count"] == 1
+    assert result["favorite_bands"][2]["away_count"] == 1
     assert result["favorite_bands"][0]["avg_favorite_fair_prob"] == pytest.approx(70)
 
 
