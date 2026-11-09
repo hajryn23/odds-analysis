@@ -4,6 +4,8 @@ The SGOdds export uses source-specific column names and a reusable source ID.
 We keep its complete source rows separately while mapping its 1X2 prices into
 the existing analysis pipeline.
 """
+import re
+
 import pandas as pd
 
 
@@ -35,8 +37,8 @@ def adapt_odds_source(df):
         )
 
     teams = df["match"].astype("string").str.extract(
-        r"^\\s*(.*?)\\s+vs\\.?\\s+(.*?)\\s*$",
-        flags=2,
+        r"^\s*(.*?)\s+vs\.?\s+(.*?)\s*$",
+        flags=re.IGNORECASE,
     )
     mapped = pd.DataFrame(index=df.index)
     mapped["date"] = pd.to_datetime(df["start_time"], errors="coerce")
