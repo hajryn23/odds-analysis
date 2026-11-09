@@ -103,3 +103,12 @@ bookmaker-margin calculations, import-history row counts, orphaned records,
 and the JSON source archive. It reports the stored date range and number of
 source columns found. The audit opens the database in SQLite read-only mode;
 it does not import, update, or delete records.
+
+## Historical market segmentation
+
+The dashboard groups saved 1X2 records by the lowest decimal price among
+Home, Draw, and Away. It reports each favorite-price band's sample count,
+share, average fair probability of the favorite, average bookmaker margin,
+and the Home/Draw/Away favorite split. A separate table groups records by
+bookmaker-margin range. These are descriptive summaries of quoted prices;
+they do not measure realized win rates or predict future match outcomes.

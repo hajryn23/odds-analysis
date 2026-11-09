@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from odds_engine.database import init_db, load_analysis, load_import_history
+from odds_engine.historical_analysis import analyze_historical_odds
 
 app = Flask(__name__)
 DB_PATH = ROOT / "data" / "odds_analysis.sqlite3"
@@ -56,7 +57,9 @@ def index():
     import_history = load_import_history(DB_PATH)
 
     stats = None
+    historical = {"favorite_bands": [], "margin_bands": []}
     if not df.empty:
+        historical = analyze_historical_odds(df)
         stats = {
             "total_matches": len(df),
             "average_margin": float(df["bookmaker_margin"].mean() * 100),
@@ -74,6 +77,7 @@ def index():
         columns=columns,
         stats=stats,
         import_history=import_history,
+        historical=historical,
         column_labels=COLUMN_LABELS,
         percent_columns=PERCENT_COLUMNS,
         odds_columns=ODDS_COLUMNS,
