@@ -6,3 +6,7 @@ data/raw/uploads/
 data/processed/
 .env
 .DS_Store
+
+# Local analysis database (contains personal imported data)
+data/*.sqlite3
+data/*.sqlite3-*

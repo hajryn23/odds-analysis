@@ -4,279 +4,99 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Analisis Odds Sepak Bola</title>
-
 <style>
-* { box-sizing: border-box; }
-
-body {
-    margin: 0;
-    padding: 18px;
-    background: #101827;
-    color: #e5e7eb;
-    font-family: Arial, sans-serif;
-}
-
-.container { max-width: 1100px; margin: auto; }
-
-h1 { font-size: 25px; }
-h2 { font-size: 19px; }
-h3 { font-size: 16px; }
-
-.subtitle { color: #9ca3af; margin-bottom: 25px; }
-
-.panel, .stat {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 17px;
-    margin-bottom: 16px;
-}
-
-.stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-    gap: 12px;
-}
-
-.stat small { color: #9ca3af; }
-.stat strong {
-    display: block;
-    font-size: 23px;
-    margin-top: 9px;
-}
-
-input { max-width: 100%; margin: 12px 0; }
-
-button, .download {
-    display: inline-block;
-    background: #2563eb;
-    color: white;
-    border: 0;
-    padding: 11px 16px;
-    border-radius: 7px;
-    text-decoration: none;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.chart-row { margin: 17px 0; }
-
-.chart-label {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 7px;
-    font-size: 14px;
-}
-
-.bar-bg {
-    height: 14px;
-    background: #334155;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.bar {
-    height: 100%;
-    border-radius: 8px;
-}
-
-.home { background: #38bdf8; }
-.draw { background: #fbbf24; }
-.away { background: #a78bfa; }
-.margin { background: #f87171; }
-
-.table-wrap { overflow-x: auto; }
-
-table {
-    border-collapse: collapse;
-    width: 100%;
-    min-width: 700px;
-}
-
-th, td {
-    padding: 10px;
-    border-bottom: 1px solid #334155;
-    text-align: left;
-    white-space: nowrap;
-    font-size: 13px;
-}
-
-th { color: #93c5fd; background: #263449; }
-
-.error { color: #fca5a5; }
-.success { color: #86efac; }
-
-.note {
-    color: #9ca3af;
-    font-size: 12px;
-    line-height: 1.5;
-}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:#101827;color:#e5e7eb;font-family:Arial,sans-serif}
+.container{max-width:1150px;margin:auto}
+h1{font-size:25px}h2{font-size:19px}
+.subtitle,.muted{color:#9ca3af}
+.panel,.stat{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:17px;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+.stat small{color:#9ca3af}.stat strong{display:block;font-size:22px;margin-top:9px}
+.chart-row{margin:17px 0}.chart-label{display:flex;justify-content:space-between;margin-bottom:7px;font-size:14px}
+.bar-bg{height:14px;background:#334155;border-radius:8px;overflow:hidden}
+.bar{height:100%;border-radius:8px}.home{background:#38bdf8}.draw{background:#fbbf24}.away{background:#a78bfa}.margin{background:#f87171}
+.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:900px}
+th,td{padding:10px;border-bottom:1px solid #334155;text-align:left;white-space:nowrap;font-size:13px}
+th{color:#93c5fd;background:#263449}.empty{padding:26px;text-align:center}
+.note{color:#9ca3af;font-size:12px;line-height:1.5}
 </style>
 </head>
-
 <body>
 <div class="container">
-
 <h1>Analisis Odds Sepak Bola</h1>
-<div class="subtitle">
-Sistem Analisis Data Historis Pertandingan Sepak Bola
-</div>
+<p class="subtitle">Dashboard analisis data historis pertandingan — penyimpanan SQLite lokal</p>
 
-<div class="panel">
-    <h3>Unggah Data Pertandingan</h3>
-    <p>Pilih berkas CSV yang berisi data pertandingan dan odds 1X2.</p>
-
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".csv" required>
-        <br>
-        <button type="submit">Mulai Analisis</button>
-    </form>
-
-    {% if error %}
-        <p class="error">{{ error }}</p>
-    {% endif %}
-</div>
-
-{% if stats %}
-
+{% if not stats %}
+<section class="panel empty">
+<h2>Belum Ada Data Analisis</h2>
+<p class="muted">Database siap digunakan, tetapi belum ada pertandingan yang diimpor.</p>
+<p class="note">Untuk menjaga kendali data, CSV hanya diproses melalui perintah impor manual di Termux setelah konfirmasi. Dashboard ini tidak memindai folder CSV dan tidak mengunggah atau mengunduh berkas.</p>
+</section>
+{% else %}
 <h2>Ringkasan Analisis</h2>
-
 <div class="stats">
-    <div class="stat">
-        <small>Total Pertandingan</small>
-        <strong>{{ stats.total_matches }}</strong>
-    </div>
-
-    <div class="stat">
-        <small>Rata-rata Margin Bandar</small>
-        <strong>{{ "%.2f"|format(stats.average_margin) }}%</strong>
-    </div>
-
-    <div class="stat">
-        <small>Probabilitas Wajar Tuan Rumah</small>
-        <strong>{{ "%.2f"|format(stats.home_probability) }}%</strong>
-    </div>
-
-    <div class="stat">
-        <small>Probabilitas Wajar Seri</small>
-        <strong>{{ "%.2f"|format(stats.draw_probability) }}%</strong>
-    </div>
-
-    <div class="stat">
-        <small>Probabilitas Wajar Tandang</small>
-        <strong>{{ "%.2f"|format(stats.away_probability) }}%</strong>
-    </div>
+<div class="stat"><small>Total baris pertandingan</small><strong>{{ stats.total_matches }}</strong></div>
+<div class="stat"><small>Rata-rata margin bandar</small><strong>{{ "%.2f"|format(stats.average_margin) }}%</strong></div>
+<div class="stat"><small>Probabilitas wajar home</small><strong>{{ "%.2f"|format(stats.home_probability) }}%</strong></div>
+<div class="stat"><small>Probabilitas wajar draw</small><strong>{{ "%.2f"|format(stats.draw_probability) }}%</strong></div>
+<div class="stat"><small>Probabilitas wajar away</small><strong>{{ "%.2f"|format(stats.away_probability) }}%</strong></div>
 </div>
 
-<div class="panel">
-    <h2>Grafik Probabilitas Wajar 1X2</h2>
-
-    <div class="chart-row">
-        <div class="chart-label">
-            <span>Tuan Rumah</span>
-            <strong>{{ "%.2f"|format(stats.home_probability) }}%</strong>
-        </div>
-        <div class="bar-bg">
-            <div class="bar home"
-                 style="width: {{ stats.home_probability }}%"></div>
-        </div>
-    </div>
-
-    <div class="chart-row">
-        <div class="chart-label">
-            <span>Seri</span>
-            <strong>{{ "%.2f"|format(stats.draw_probability) }}%</strong>
-        </div>
-        <div class="bar-bg">
-            <div class="bar draw"
-                 style="width: {{ stats.draw_probability }}%"></div>
-        </div>
-    </div>
-
-    <div class="chart-row">
-        <div class="chart-label">
-            <span>Tandang</span>
-            <strong>{{ "%.2f"|format(stats.away_probability) }}%</strong>
-        </div>
-        <div class="bar-bg">
-            <div class="bar away"
-                 style="width: {{ stats.away_probability }}%"></div>
-        </div>
-    </div>
-
-    <p class="note">
-        Grafik menunjukkan rata-rata probabilitas wajar dari seluruh
-        pertandingan yang dianalisis, bukan prediksi satu pertandingan.
-    </p>
+<section class="panel">
+<h2>Rata-rata Probabilitas Wajar 1X2</h2>
+{% for key,label,css in [
+("home_probability","Tuan Rumah","home"),
+("draw_probability","Seri","draw"),
+("away_probability","Tandang","away")
+] %}
+<div class="chart-row">
+<div class="chart-label"><span>{{ label }}</span><strong>{{ "%.2f"|format(stats[key]) }}%</strong></div>
+<div class="bar-bg"><div class="bar {{ css }}" style="width:{{ [stats[key],100]|min }}%"></div></div>
 </div>
+{% endfor %}
+<p class="note">Rata-rata agregat seluruh baris tersimpan, bukan prediksi untuk satu pertandingan.</p>
+</section>
 
-<div class="panel">
-    <h2>Rata-rata Odds Wajar</h2>
-
-    <div class="stats">
-        <div class="stat">
-            <small>Odds Wajar Tuan Rumah</small>
-            <strong>{{ "%.3f"|format(stats.home_fair_odds) }}</strong>
-        </div>
-
-        <div class="stat">
-            <small>Odds Wajar Seri</small>
-            <strong>{{ "%.3f"|format(stats.draw_fair_odds) }}</strong>
-        </div>
-
-        <div class="stat">
-            <small>Odds Wajar Tandang</small>
-            <strong>{{ "%.3f"|format(stats.away_fair_odds) }}</strong>
-        </div>
-    </div>
+<section class="panel">
+<h2>Rata-rata Odds Wajar</h2>
+<div class="stats">
+<div class="stat"><small>Home</small><strong>{{ "%.3f"|format(stats.home_fair_odds) }}</strong></div>
+<div class="stat"><small>Draw</small><strong>{{ "%.3f"|format(stats.draw_fair_odds) }}</strong></div>
+<div class="stat"><small>Away</small><strong>{{ "%.3f"|format(stats.away_fair_odds) }}</strong></div>
 </div>
+</section>
 
-<div class="panel">
-    <h2>Margin Bandar</h2>
+<section class="panel">
+<h2>Margin Bandar Rata-rata</h2>
+<div class="chart-label"><span>Margin</span><strong>{{ "%.2f"|format(stats.average_margin) }}%</strong></div>
+<div class="bar-bg"><div class="bar margin" style="width:{{ [stats.average_margin,100]|min }}%"></div></div>
+</section>
 
-    <div class="chart-label">
-        <span>Rata-rata margin</span>
-        <strong>{{ "%.2f"|format(stats.average_margin) }}%</strong>
-    </div>
-
-    <div class="bar-bg">
-        <div class="bar margin"
-             style="width: {{ [stats.average_margin, 100]|min }}%">
-        </div>
-    </div>
-</div>
-
-<div class="panel">
-    <h2>Tabel Hasil Analisis</h2>
-
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    {% for column in columns %}
-                    <th>{{ column }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for row in results %}
-                <tr>
-                    {% for column in columns %}
-                    <th>{{ column_labels.get(column, column) }}</th>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <br>
-    <a class="download" href="/download">Unduh Hasil Analisis CSV</a>
-</div>
-
+<section class="panel">
+<h2>Seluruh Hasil Analisis</h2>
+<div class="table-wrap">
+<table>
+<thead><tr>{% for column in columns %}<th>{{ column_labels.get(column,column) }}</th>{% endfor %}</tr></thead>
+<tbody>
+{% for row in results %}
+<tr>{% for column in columns %}
+<td>
+{% if column.endswith("_prob") or column == "bookmaker_margin" %}
+{{ "%.4f"|format(row[column]) }}
+{% elif column.endswith("_odds") %}
+{{ "%.3f"|format(row[column]) }}
+{% else %}
+{{ row[column] }}
 {% endif %}
-
+</td>
+{% endfor %}</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endif %}
 </div>
 </body>
 </html>
