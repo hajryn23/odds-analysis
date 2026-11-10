@@ -6,7 +6,8 @@ from flask import Flask, render_template
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from odds_engine.database import init_db, load_analysis, load_import_history
+from odds_engine.database import init_db, load_analysis, load_import_history, load_source_records
+from odds_engine.outcome_analysis import analyze_outcomes
 from odds_engine.historical_analysis import analyze_historical_odds
 
 app = Flask(__name__)
@@ -58,6 +59,7 @@ def index():
 
     stats = None
     historical = {"favorite_bands": [], "margin_bands": []}
+    outcomes = analyze_outcomes(df, load_source_records(DB_PATH))
     if not df.empty:
         historical = analyze_historical_odds(df)
         stats = {
@@ -78,6 +80,7 @@ def index():
         stats=stats,
         import_history=import_history,
         historical=historical,
+        outcomes=outcomes,
         column_labels=COLUMN_LABELS,
         percent_columns=PERCENT_COLUMNS,
         odds_columns=ODDS_COLUMNS,
