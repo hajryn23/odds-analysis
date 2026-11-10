@@ -116,8 +116,6 @@ tbody tr:last-child td{border-bottom:0}
 
 
 <section class="panel">
-
-<section class="panel">
 <h2>Validasi Probabilitas terhadap Hasil Aktual</h2>
 <p class="section-note">Hasil pertandingan dibaca dari arsip sumber asli dan dipasangkan hanya jika tanggal, tim kandang, dan tim tandang menghasilkan satu kecocokan unik. Baris ambigu atau hasil yang tidak dikenali tidak dipaksakan masuk ke perhitungan.</p>
 <div class="stats">
@@ -143,6 +141,7 @@ tbody tr:last-child td{border-bottom:0}
 <p class="note">Pemeriksaan pasangan: {{ outcomes.unmatched }} tidak cocok · {{ outcomes.ambiguous }} ambigu · {{ outcomes.unrecognized }} hasil tidak dikenali.</p>
 </section>
 
+<section class="panel">
 <h2>Profil Harga Odds Favorit</h2>
 <p class="section-note">Setiap pertandingan dikelompokkan berdasarkan odds terendah dari Home, Draw, atau Away. Probabilitas favorit adalah fair probability hasil yang memiliki odds terendah. Angka ini menggambarkan harga pasar, bukan tingkat kemenangan aktual.</p>
 {% if historical.favorite_bands %}
