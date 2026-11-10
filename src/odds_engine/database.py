@@ -265,3 +265,14 @@ def load_import_history(db_path, limit=10):
             (max(1, int(limit)),),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def load_source_records(db_path):
+    """Load archived raw source payloads for read-only outcome analysis."""
+    init_db(db_path)
+    with closing(_connect(db_path)) as connection:
+        rows = connection.execute(
+            "SELECT import_id, row_number, raw_payload "
+            "FROM source_data_records ORDER BY import_id, row_number, id"
+        ).fetchall()
+    return [dict(row) for row in rows]
