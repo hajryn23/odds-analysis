@@ -116,6 +116,32 @@ tbody tr:last-child td{border-bottom:0}
 
 
 <section class="panel">
+<h2>Validasi Probabilitas terhadap Hasil Aktual</h2>
+<p class="section-note">Hasil pertandingan dibaca dari arsip sumber asli dan dipasangkan hanya jika tanggal, tim kandang, dan tim tandang menghasilkan satu kecocokan unik. Baris ambigu atau hasil yang tidak dikenali tidak dipaksakan masuk ke perhitungan.</p>
+<div class="stats">
+<div class="stat"><small>Fixture cocok</small><strong>{{ outcomes.matched }}</strong></div>
+<div class="stat"><small>Akurasi pilihan probabilitas tertinggi</small><strong>{% if outcomes.top_probability_accuracy is not none %}{{ "%.2f"|format(outcomes.top_probability_accuracy) }}%{% else %}—{% endif %}</strong></div>
+<div class="stat"><small>Multiclass Brier score</small><strong>{% if outcomes.brier_score is not none %}{{ "%.4f"|format(outcomes.brier_score) }}{% else %}—{% endif %}</strong></div>
+</div>
+<p class="note">Brier score adalah rata-rata jumlah kuadrat selisih probabilitas Home/Draw/Away dengan hasil aktual; makin kecil makin baik. Akurasi menunjukkan seberapa sering hasil dengan probabilitas wajar tertinggi benar. Ini evaluasi historis, bukan jaminan performa mendatang.</p>
+{% if outcomes.matched %}
+<h3 style="margin-top:18px">Probabilitas Wajar vs Frekuensi Aktual</h3>
+<div class="table-wrap"><table class="analysis-table">
+<thead><tr><th>Hasil</th><th>Rata-rata Probabilitas Wajar</th><th>Frekuensi Aktual</th><th>Selisih (poin persentase)</th></tr></thead>
+<tbody>{% for item in outcomes.probability_comparison %}
+<tr><td>{{ item.outcome }}</td><td class="numeric">{{ "%.2f"|format(item.average_fair_probability) }}%</td><td class="numeric">{{ "%.2f"|format(item.observed_frequency) }}%</td><td class="numeric">{{ "%+.2f"|format(item.difference_pp) }} pp</td></tr>
+{% endfor %}</tbody></table></div>
+<h3 style="margin-top:18px">Komposisi Hasil Aktual</h3>
+<div class="table-wrap"><table class="analysis-table">
+<thead><tr><th>Hasil</th><th>Jumlah</th><th>Porsi</th></tr></thead>
+<tbody>{% for item in outcomes.outcome_counts %}
+<tr><td>{{ item.outcome }}</td><td class="numeric">{{ item.count }}</td><td class="numeric">{{ "%.2f"|format(item.share) }}%</td></tr>
+{% endfor %}</tbody></table></div>
+{% else %}<p class="muted">Belum ada hasil yang berhasil dipasangkan secara unik dengan baris odds. Periksa format kolom Result, Match, dan Start Time pada arsip sumber.</p>{% endif %}
+<p class="note">Pemeriksaan pasangan: {{ outcomes.unmatched }} tidak cocok · {{ outcomes.ambiguous }} ambigu · {{ outcomes.unrecognized }} hasil tidak dikenali.</p>
+</section>
+
+<section class="panel">
 <h2>Profil Harga Odds Favorit</h2>
 <p class="section-note">Setiap pertandingan dikelompokkan berdasarkan odds terendah dari Home, Draw, atau Away. Probabilitas favorit adalah fair probability hasil yang memiliki odds terendah. Angka ini menggambarkan harga pasar, bukan tingkat kemenangan aktual.</p>
 {% if historical.favorite_bands %}

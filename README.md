@@ -112,3 +112,14 @@ share, average fair probability of the favorite, average bookmaker margin,
 and the Home/Draw/Away favorite split. A separate table groups records by
 bookmaker-margin range. These are descriptive summaries of quoted prices;
 they do not measure realized win rates or predict future match outcomes.
+
+
+## Outcome validation
+
+The dashboard compares stored fair 1X2 probabilities with outcomes in archived
+raw source rows. Fixture matching uses date, home team, and away team; ambiguous
+matches are excluded rather than guessed. Score strings such as `2-1` and
+explicit 1X2 labels are normalized. The dashboard reports match coverage,
+outcome frequencies, probability-vs-frequency differences, multiclass Brier
+score, and top-probability accuracy. This is retrospective evaluation, not a
+guarantee or betting recommendation.
